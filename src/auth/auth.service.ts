@@ -15,7 +15,7 @@ import * as crypto from 'crypto';
 import { EmailService } from 'src/email/email.service';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 import { LoginDto } from './dto/login.dto';
-
+import { generateSecret, generate, verify, generateURI } from 'otplib';
 type JwtPayloadUser = {
   id: string;
   email: string;
@@ -207,7 +207,44 @@ export class AuthService {
           'Two-factor authentication is enabled but not configured. Please contact support.',
         );
       }
+      const result = await verify({
+        secret: user.twoFactorAuthSecret,
+        token: dto.twoFactorAuthCode,
+      });
+      if (!result.valid) {
+        this.logger.error(
+          `Invalid two-factor authentication code for user ${dto.email}`,
+        );
+        throw new BadRequestException('Invalid two-factor authentication code');
+      }
     }
+
+    //reset failed attempts on successful login
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    await this.usersService.update(user.id, {
+      id: user.id,
+      failedLoginAttempts: user.failedLoginAttempts,
+      lockUntil: user.lockUntil,
+    });
+    const tokens = await this.generateTokens(user);
+    this.logger.info(`User with email ${dto.email} has logged in`);
+    return {
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isEmailVerified: user.isEmailVerified,
+        twoFactorAuth: user.twoFactorAuth,
+        role: user.role,
+      },
+      ...tokens,
+    };
+
+
+    
   }
   // ====================== Private Methods ======================
 
