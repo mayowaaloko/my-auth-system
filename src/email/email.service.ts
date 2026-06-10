@@ -1,0 +1,65 @@
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
+import { Logger } from 'winston';
+
+@Injectable()
+export class EmailService {
+  constructor(
+    private readonly resend: Resend,
+    private readonly configService: ConfigService,
+    private readonly logger: Logger,
+  ) {
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    if (!apiKey) {
+      this.logger.error('RESEND_API_KEY is not defined');
+      throw new Error('RESEND_API_KEY is not defined');
+    }
+    this.resend = new Resend(apiKey);
+  }
+
+  async sendVerificationEmail(email: string, token: string): Promise<void> {
+    const appUrl = this.configService.get<string>('APP_URL');
+    const fromEmail =
+      this.configService.get<string>('RESEND_FROM_EMAIL') ||
+      'onboarding@resend.dev';
+    const verificationUrl = `${appUrl}/auth/verify-email?token=${token}`;
+
+    try {
+      await this.resend.emails.send({
+        from: fromEmail,
+        to: email,
+        subject: 'Verify your account',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome! Please verify your email</h2>
+            <p>Thanks for signing up. Click the button below to verify your email address.</p>
+            <a
+              href="${verificationUrl}"
+              style="
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #4F46E5;
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                margin: 16px 0;
+              "
+            >
+              Verify Email
+            </a>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="color: #6B7280; word-break: break-all;">${verificationUrl}</p>
+            <p>This link expires in 24 hours.</p>
+            <p>If you didn't create an account, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error sending verification email to ${email}: ${error}`,
+      );
+      throw error;
+    }
+  }
+}

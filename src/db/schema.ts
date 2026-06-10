@@ -13,34 +13,52 @@ export const users = pgTable('user', {
   lastName: text('last_name').notNull(),
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
+
   passwordChangedAt: timestamp('password_changed_at'),
+
   role: userRoleEnum('role').notNull().default('user'),
+
   googleId: text('google_id').unique(),
+
   twoFactorAuth: boolean('two_factor_auth').notNull().default(false),
   twoFactorAuthSecret: text('two_factor_auth_secret'),
+
   isEmailVerified: boolean('is_verified').notNull().default(false),
+  
   emailVerificationToken: text('email_verification_token').unique(),
   emailVerificationTokenExpiresAt: timestamp(
     'email_verification_token_expires_at',
   ),
+
   resetToken: text('reset_token').unique(),
   resetTokenExpiresAt: timestamp('reset_token_expires_at'),
+
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockUntil: timestamp('lock_until'),
 
   tokenVersion: integer('token_version').notNull().default(0),
+
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const refreshTokens = pgTable('refresh_token', {
   id: uuid('id').defaultRandom().primaryKey(),
+
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  token: text('token').notNull().unique(),
+  
+  tokenHash: text('token_hash').notNull().unique(),
+
   family: text('family').notNull(),
+
+  jti: text('jti').notNull().unique(),
+  
   expiresAt: timestamp('expires_at').notNull(),
+
+  revokedAt: timestamp('revoked_at'),
+
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
