@@ -8,6 +8,7 @@ import { EmailModule } from 'src/email/email.module';
 import { RefreshTokenModule } from 'src/refresh-token/refresh-token.module';
 import { LoggerModule } from 'src/logger/logger.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @Module({
   imports: [
     UsersModule,
@@ -26,6 +27,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     LoggerModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtAuthGuard],
 })
 export class AuthModule {}

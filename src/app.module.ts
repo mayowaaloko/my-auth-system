@@ -9,7 +9,9 @@ import { AuthModule } from './auth/auth.module';
 import { HashPasswordModule } from './hash-password/hash-password.module';
 import { EmailModule } from './email/email.module';
 import { RefreshTokenModule } from './refresh-token/refresh-token.module';
-
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -25,6 +27,6 @@ import { RefreshTokenModule } from './refresh-token/refresh-token.module';
     RefreshTokenModule,
   ],
   controllers: [AppController, UsersController],
-  providers: [AppService],
+  providers: [AppService, JwtService ,{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}

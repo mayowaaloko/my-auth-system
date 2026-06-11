@@ -101,7 +101,8 @@ export class AuthService {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     //check if the user exists
-    const user = await this.usersService.findByEmailVerificationToken(hashedToken);
+    const user =
+      await this.usersService.findByEmailVerificationToken(hashedToken);
     if (!user || !user.emailVerificationTokenExpiresAt) {
       this.logger.error('Invalid or expired verification token');
       throw new BadRequestException(
@@ -209,24 +210,24 @@ export class AuthService {
       );
     }
 
-    //2FA check
-    if (user.twoFactorAuth) {
-      if (!user.twoFactorAuthSecret || !dto.twoFactorAuthCode) {
-        throw new BadRequestException(
-          'Two-factor authentication is enabled but not configured. Please contact support.',
-        );
-      }
-      const result = await verify({
-        secret: user.twoFactorAuthSecret,
-        token: dto.twoFactorAuthCode,
-      });
-      if (!result.valid) {
-        this.logger.error(
-          `Invalid two-factor authentication code for user ${dto.email}`,
-        );
-        throw new BadRequestException('Invalid two-factor authentication code');
-      }
-    }
+    // //2FA check
+    // if (user.twoFactorAuth) {
+    //   if (!user.twoFactorAuthSecret || !dto.twoFactorAuthCode) {
+    //     throw new BadRequestException(
+    //       'Two-factor authentication is enabled but not configured. Please contact support.',
+    //     );
+    //   }
+    //   const result = await verify({
+    //     secret: user.twoFactorAuthSecret,
+    //     token: dto.twoFactorAuthCode,
+    //   });
+    //   if (!result.valid) {
+    //     this.logger.error(
+    //       `Invalid two-factor authentication code for user ${dto.email}`,
+    //     );
+    //     throw new BadRequestException('Invalid two-factor authentication code');
+    //   }
+    // }
 
     //reset failed attempts on successful login
     user.failedLoginAttempts = 0;
@@ -294,8 +295,8 @@ export class AuthService {
 
     //verify hash match
     const isValid = await this.hashPasswordService.verifyPassword(
-      storedToken.tokenHash,
       refreshToken,
+      storedToken.tokenHash,
     );
     if (!isValid) {
       throw new UnauthorizedException('Invalid refresh token signature');
@@ -343,6 +344,33 @@ export class AuthService {
       this.logger.error(`Error during logout: ${error.message}`);
     }
     return { message: 'Logged out successfuly' };
+  }
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      return {
+        message:
+          'If an account with this email exists, you will receive a password reset email',
+      };
+    }
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+    const resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.usersService.update(user.id, {
+      resetToken:hashedResetToken,
+      resetTokenExpiresAt,
+    });
+
+    await this.emailService.sendPasswordResetEmail(email, resetToken);
+     return {
+        message:
+          'If an account with this email exists, you will receive a password reset email',
+      };
+    }
   }
   // ====================== Private Methods ======================
 
