@@ -116,6 +116,7 @@ export class AuthService {
       isEmailVerified: true,
       emailVerificationToken: null,
       emailVerificationTokenExpiresAt: null,
+      updatedAt: new Date(),
     });
 
     const tokens = await this.generateTokens({
@@ -159,6 +160,7 @@ export class AuthService {
     await this.usersService.update(user.id, {
       emailVerificationToken: hashedEmailToken,
       emailVerificationTokenExpiresAt,
+      updatedAt: new Date(),
     });
     await this.emailService.sendVerificationEmail(
       email,
@@ -198,6 +200,7 @@ export class AuthService {
       await this.usersService.update(user.id, {
         failedLoginAttempts: user.failedLoginAttempts,
         lockUntil: user.lockUntil,
+        updatedAt: new Date(),
       });
       this.logger.error(`Invalid credentials for user ${dto.email}`);
       throw new BadRequestException('Invalid credentials');
@@ -236,6 +239,7 @@ export class AuthService {
       id: user.id,
       failedLoginAttempts: user.failedLoginAttempts,
       lockUntil: user.lockUntil,
+      updatedAt: new Date(),
     });
     const tokens = await this.generateTokens(user);
     this.logger.info(`User with email ${dto.email} has logged in`);
@@ -361,17 +365,97 @@ export class AuthService {
     const resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await this.usersService.update(user.id, {
-      resetToken:hashedResetToken,
+      resetToken: hashedResetToken,
       resetTokenExpiresAt,
+      updatedAt: new Date(),
     });
 
     await this.emailService.sendPasswordResetEmail(email, resetToken);
-     return {
-        message:
-          'If an account with this email exists, you will receive a password reset email',
-      };
-    }
+    return {
+      message:
+        'If an account with this email exists, you will receive a password reset email',
+    };
   }
+
+  async resetPassword(token: string, newPassword: string) {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await this.usersService.findByResetToken(hashedToken);
+    if (
+      !user ||
+      !user.resetTokenExpiresAt ||
+      new Date(user.resetTokenExpiresAt) < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const hashedPassword =
+      await this.hashPasswordService.hashPassword(newPassword);
+    await this.refreshTokenService.revokeAllForUser(user.id);
+    await this.usersService.update(user.id, {
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiresAt: null,
+      updatedAt: new Date(),
+      passwordChangedAt: new Date(),
+    });
+
+    // Auto-login after reset
+    const tokens = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return {
+      message: 'Password reset successful',
+      ...tokens,
+    };
+  }
+
+  async updatePassword(
+    userId: string,
+    newPassword: string,
+    oldPassword: string,
+  ) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException(
+        'You are not authorized to perform this action',
+      );
+    }
+    const isPasswordCorrect = await this.hashPasswordService.verifyPassword(
+      oldPassword,
+      user.password,
+    );
+    if (!isPasswordCorrect) {
+      throw new BadRequestException('Incorrect old password');
+    }
+
+    const hashedPassword =
+      await this.hashPasswordService.hashPassword(newPassword);
+    await this.usersService.update(user.id, {
+      password: hashedPassword,
+      updatedAt: new Date(),
+      passwordChangedAt: new Date(),
+    });
+
+    await this.refreshTokenService.revokeAllForUser(user.id);
+
+    const tokens = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+    return {
+      message: 'Password updated successfully',
+      ...tokens,
+    };
+  }
+  async logoutAll(userId: string) {
+    await this.refreshTokenService.revokeAllForUser(userId);
+    return { message: 'All sessions logged out successfully' };
+  }
+
   // ====================== Private Methods ======================
 
   private parseDurationToMs(value: string | number | undefined): number {

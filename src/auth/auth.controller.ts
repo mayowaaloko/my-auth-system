@@ -22,6 +22,9 @@ import { LoginDto } from './dto/login.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { User } from 'src/db/schema';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { updatePasswordDto } from './dto/update-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -144,5 +147,81 @@ export class AuthController {
       sameSite: 'lax',
     });
     return { message: 'Logged out successfully' };
+  }
+
+  // POST /api/v1/auth/forgot-password
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset email' })
+  async forgotPassword(@Body() forgotPasswordData: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordData.email);
+  }
+
+  //POST /api/v1/auth/reset-password
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset a user password' })
+  async resetPassword(
+    @Query('token') token: string,
+    @Body() ResetPasswordData: ResetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.resetPassword(
+      token,
+      ResetPasswordData.newPassword,
+    );
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const { refreshToken, ...response } = result;
+    return response;
+  }
+
+  // POST /api/v1/auth/update-password
+  @UseGuards(JwtAuthGuard)
+  @Post('update-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a user password' })
+  async updatePassword(
+    @CurrentUser() user: User,
+    @Body() updatePasswordData: updatePasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.updatePassword(
+      user.id,
+      updatePasswordData.newPassword,
+      updatePasswordData.oldPassword,
+    );
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const { refreshToken, ...response } = result;
+    return response;
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout all sessions of a user' })
+  async logoutAll(
+    @CurrentUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logoutAll(user.id);
+    res.clearCookie('jwt');
+    res.clearCookie('refreshToken');
+    return { message: 'All sessions logged out successfully' };
   }
 }

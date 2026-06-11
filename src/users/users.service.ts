@@ -40,4 +40,13 @@ export class UsersService {
       .limit(1);
     return result[0] ?? null;
   }
+
+  async findByResetToken(token: string) {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.resetToken, token))
+      .limit(1);
+    return result[0] ?? null;
+  }
 }

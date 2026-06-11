@@ -37,7 +37,7 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException('Missing token');
     }
-    let payload: { sub: string; email: string; role: string };
+    let payload: { sub: string; email: string; role: string; iat: number };
     try {
       payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET')!,
@@ -49,6 +49,17 @@ export class JwtAuthGuard implements CanActivate {
     if (!user) {
       throw new UnauthorizedException('Invalid token');
     }
+    if (user.passwordChangedAt) {
+      const passwordChangedTimestamp = Math.floor(
+        user.passwordChangedAt.getTime() / 1000,
+      );
+      if (payload.iat < passwordChangedTimestamp) {
+        throw new UnauthorizedException(
+          'Password recently changed. Please log in again.',
+        );
+      }
+    }
+
     request.user = user;
     return true;
   }

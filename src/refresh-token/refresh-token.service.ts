@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from 'src/db/db';
 import { NewRefreshToken, refreshTokens } from 'src/db/schema';
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, isNull } from 'drizzle-orm';
 
 @Injectable()
 export class RefreshTokenService {
@@ -52,8 +52,20 @@ export class RefreshTokenService {
       .update(refreshTokens)
       .set({
         used: true,
-        revokedAt: new Date(), 
+        revokedAt: new Date(),
       })
       .where(eq(refreshTokens.id, id));
+  }
+  async revokeAllForUser(userId: string) {
+    return db
+      .update(refreshTokens)
+      .set({
+        revokedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)),
+      )
+      .returning();
   }
 }
