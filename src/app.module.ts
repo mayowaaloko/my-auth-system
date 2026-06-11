@@ -12,6 +12,7 @@ import { RefreshTokenModule } from './refresh-token/refresh-token.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
+import { GoogleModule } from './google/google.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { JwtService } from '@nestjs/jwt';
     HashPasswordModule,
     EmailModule,
     RefreshTokenModule,
+    GoogleModule,
   ],
   controllers: [AppController, UsersController],
   providers: [AppService, JwtService ,{ provide: APP_GUARD, useClass: JwtAuthGuard }],

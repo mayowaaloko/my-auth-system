@@ -220,8 +220,11 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logoutAll(user.id);
-    res.clearCookie('jwt');
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'lax',
+    });
     return { message: 'All sessions logged out successfully' };
   }
 }

@@ -369,8 +369,9 @@ export class AuthService {
       resetTokenExpiresAt,
       updatedAt: new Date(),
     });
-
+    this.logger.info(`Password reset token generated for user ${email}`);
     await this.emailService.sendPasswordResetEmail(email, resetToken);
+    this.logger.info(`Password reset email sent to user ${email}`);
     return {
       message:
         'If an account with this email exists, you will receive a password reset email',
@@ -398,6 +399,8 @@ export class AuthService {
       updatedAt: new Date(),
       passwordChangedAt: new Date(),
     });
+    this.logger.info(`Password reset for user ${user.email}`);
+
 
     // Auto-login after reset
     const tokens = await this.generateTokens({
@@ -438,7 +441,7 @@ export class AuthService {
       updatedAt: new Date(),
       passwordChangedAt: new Date(),
     });
-
+this.logger.info(`Password updated for user ${user.email}`);
     await this.refreshTokenService.revokeAllForUser(user.id);
 
     const tokens = await this.generateTokens({
@@ -455,6 +458,8 @@ export class AuthService {
     await this.refreshTokenService.revokeAllForUser(userId);
     return { message: 'All sessions logged out successfully' };
   }
+
+async googleAuth(){}
 
   // ====================== Private Methods ======================
 
