@@ -7,14 +7,23 @@ import { HashPasswordModule } from 'src/hash-password/hash-password.module';
 import { EmailModule } from 'src/email/email.module';
 import { RefreshTokenModule } from 'src/refresh-token/refresh-token.module';
 import { LoggerModule } from 'src/logger/logger.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 @Module({
   imports: [
     UsersModule,
-    JwtModule.register({}),
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_ACCESS_SECRET'),
+        signOptions: {
+          expiresIn: config.get('JWT_ACCESS_EXPIRES_IN') as any,
+        },
+      }),
+    }),
     HashPasswordModule,
     EmailModule,
     RefreshTokenModule,
-    LoggerModule
+    LoggerModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],

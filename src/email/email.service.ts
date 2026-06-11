@@ -24,7 +24,7 @@ export class EmailService {
     const fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
       'onboarding@resend.dev';
-    const verificationUrl = `${appUrl}/auth/verify-email?token=${token}`;
+    const verificationUrl = `${appUrl}/v1/auth/verify-email?token=${token}`;
 
     try {
       await this.resend.emails.send({

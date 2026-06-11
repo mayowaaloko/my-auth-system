@@ -74,6 +74,7 @@ export class AuthService {
       dto.email,
       emailVerificationToken,
     );
+    this.logger.info(`Verification email sent to user with email ${dto.email}`);
 
     //generate tokens
     const tokens = await this.generateTokens({
@@ -84,23 +85,30 @@ export class AuthService {
     return {
       message:
         'Registration successful. Please check your email for verification instructions.',
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.firstName + ' ' + user.lastName,
+        isVerified: user.isEmailVerified,
+        role: user.role,
+      },
       ...tokens,
     };
   }
 
   async verifyEmail(token: string) {
-    const user = await this.usersService.findByEmailVerificationToken(token);
-    if (!user || user.emailVerificationTokenExpiresAt) {
+    //check if the token is valid
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    //check if the user exists
+    const user = await this.usersService.findByEmailVerificationToken(hashedToken);
+    if (!user || !user.emailVerificationTokenExpiresAt) {
+      this.logger.error('Invalid or expired verification token');
       throw new BadRequestException(
-        this.logger.error('Invalid or expired verification token'),
         'Please initiate the registration process again',
       );
     }
-    if (
-      user.emailVerificationTokenExpiresAt &&
-      new Date(user.emailVerificationTokenExpiresAt) < new Date()
-    ) {
+    if (new Date(user.emailVerificationTokenExpiresAt) < new Date()) {
       throw new BadRequestException('Please request a new verification email.');
     }
     await this.usersService.update(user.id, {
@@ -338,6 +346,25 @@ export class AuthService {
   }
   // ====================== Private Methods ======================
 
+  private parseDurationToMs(value: string | number | undefined): number {
+    if (value === undefined) return 7 * 24 * 60 * 60 * 1000;
+    if (typeof value === 'number') return value;
+    if (/^\d+$/.test(value)) return parseInt(value, 10);
+
+    const match = value.match(/^(\d+(?:\.\d+)?)\s*([smhdw])?$/i);
+    if (!match) return 7 * 24 * 60 * 60 * 1000;
+
+    const num = parseFloat(match[1]);
+    const unit = (match[2] || 's').toLowerCase();
+    const multipliers = {
+      s: 1000,
+      m: 60000,
+      h: 3600000,
+      d: 86400000,
+      w: 604800000,
+    };
+    return num * multipliers[unit];
+  }
   // ================= TOKEN GENERATION =================
   private async generateTokens(user: JwtPayloadUser, existingFamily?: string) {
     const jti = crypto.randomUUID();
@@ -347,14 +374,16 @@ export class AuthService {
       this.generateRefreshToken(user, jti, family),
     ]);
     const tokenHash = await this.hashPasswordService.hashPassword(refreshToken);
+    const refreshExpiresMs = this.parseDurationToMs(
+      this.configService.get('JWT_REFRESH_EXPIRES_IN'),
+    );
+
     await this.refreshTokenService.create({
       userId: user.id,
       tokenHash,
       jti,
       family,
-      expiresAt: new Date(
-        Date.now() + this.configService.get<number>('JWT_REFRESH_EXPIRES_IN')!,
-      ),
+      expiresAt: new Date(Date.now() + refreshExpiresMs),
     });
     return {
       accessToken,
@@ -366,7 +395,7 @@ export class AuthService {
   private generateAccessToken(user: JwtPayloadUser): string {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_TOKEN_SECRET'),
+      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN'),
     });
   }
@@ -378,8 +407,8 @@ export class AuthService {
   ): string {
     const payload = { sub: user.id, jti, family };
     return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
-      expiresIn: this.configService.get<number>('JWT_REFRESH_EXPIRES_IN')!,
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN')!,
     });
   }
 }

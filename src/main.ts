@@ -59,8 +59,8 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
 
-  console.log(`Application is running on: ${await app.getUrl()}/api`);
-  console.log(`Swagger is running on: ${await app.getUrl()}/api/docs`);
+  console.log(`Application is running on: ${await app.getUrl()}/api/v1`);
+  console.log(`Swagger is running on: ${await app.getUrl()}/api/v1/docs`);
 }
 bootstrap().catch((error) => {
   console.error('❌ Application falied to start:', error);

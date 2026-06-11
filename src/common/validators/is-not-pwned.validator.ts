@@ -7,7 +7,7 @@ import {
   ValidatorConstraintInterface,
   registerDecorator,
 } from 'class-validator';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 @ValidatorConstraint({ name: 'isNotPwned', async: true })
 export class IsNotPwnedConstraint implements ValidatorConstraintInterface {
   private readonly logger = new Logger(IsNotPwnedConstraint.name);
@@ -20,7 +20,7 @@ export class IsNotPwnedConstraint implements ValidatorConstraintInterface {
 
     try {
       const hash = crypto
-        .createHash('256')
+        .createHash('sha256')
         .update(password)
         .digest('hex')
         .toUpperCase();
