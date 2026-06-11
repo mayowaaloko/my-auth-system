@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -242,27 +243,117 @@ export class AuthService {
       },
       ...tokens,
     };
+  }
+  async refreshAccessToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token provided');
+    }
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const { sub: userId, jti, family } = payload;
 
+    //find the token in the db using jti
+    const storedToken = await this.refreshTokenService.findByJti(jti);
+    if (!storedToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    
+    //check if the token is used
+    if (storedToken.used || storedToken.revokedAt) {
+      //revoke all tokens of the family
+      await this.refreshTokenService.revokeFamily(storedToken.family);
+      this.logger.warn(
+        `Refresh token reuse detected for user ${userId}. Revoking famiy.`,
+      );
+      throw new UnauthorizedException(
+        'Refresh token reuse detected. Please login again.',
+      );
+    }
+
+    //check if the db record is expired
+    if (storedToken.expiresAt < new Date()) {
+      await this.refreshTokenService.revokeToken(storedToken.id);
+      throw new UnauthorizedException(
+        'Refresh token has expired.Please login again',
+      );
+    }
+
+    //verify hash match
+    const isValid = await this.hashPasswordService.verifyPassword(
+      storedToken.tokenHash,
+      refreshToken,
+    );
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid refresh token signature');
+    }
+
+    //find user
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User no longer exists');
+    }
+
+    //mark the current token as used
+    await this.refreshTokenService.markAsUsed(storedToken.id);
+
+    //issue new token
+    const tokens = await this.generateTokens(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      storedToken.family,
+    );
+    this.logger.info(`Access token refreshed successfully for user ${userId}`);
+
+    return {
+      message: 'Access token refreshed successfully',
+      ...tokens,
+    };
+  }
+  async logout(refreshToken: string) {
+    if (!refreshToken) {
+      return { message: 'Logged out successfully' };
+    }
+
+    try {
+      const payload: any = this.jwtService.decode(refreshToken);
+      if (payload && payload.family) {
+        await this.refreshTokenService.revokeFamily(payload.family);
+        this.logger.info(
+          `Session family ${payload.family} revoked for user ${payload.sub}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Error during logout: ${error.message}`);
+    }
+    return { message: 'Logged out successfuly' };
   }
   // ====================== Private Methods ======================
 
   // ================= TOKEN GENERATION =================
-  private async generateTokens(user: JwtPayloadUser) {
+  private async generateTokens(user: JwtPayloadUser, existingFamily?: string) {
+    const jti = crypto.randomUUID();
+    const family = existingFamily || crypto.randomUUID();
     const [accessToken, refreshToken] = await Promise.all([
       this.generateAccessToken(user),
-      this.generateRefreshToken(user),
+      this.generateRefreshToken(user, jti, family),
     ]);
     const tokenHash = await this.hashPasswordService.hashPassword(refreshToken);
     await this.refreshTokenService.create({
       userId: user.id,
       tokenHash,
-      jti: crypto.randomUUID(),
-      family: crypto.randomUUID(),
+      jti,
+      family,
       expiresAt: new Date(
-        Date.now() + this.configService.get('JWT_REFRESH_EXPIRES_IN') ??
-          7 * 24 * 60 * 60 * 1000,
+        Date.now() + this.configService.get<number>('JWT_REFRESH_EXPIRES_IN')!,
       ),
     });
     return {
@@ -280,11 +371,15 @@ export class AuthService {
     });
   }
 
-  private generateRefreshToken(user: JwtPayloadUser): string {
-    const payload = { sub: user.id };
+  private generateRefreshToken(
+    user: JwtPayloadUser,
+    jti: string,
+    family: string,
+  ): string {
+    const payload = { sub: user.id, jti, family };
     return this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),
+      expiresIn: this.configService.get<number>('JWT_REFRESH_EXPIRES_IN')!,
     });
   }
 }

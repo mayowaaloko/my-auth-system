@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { HashPasswordModule } from 'src/hash-password/hash-password.module';
 import { EmailModule } from 'src/email/email.module';
 import { RefreshTokenModule } from 'src/refresh-token/refresh-token.module';
+import { LoggerModule } from 'src/logger/logger.module';
 @Module({
   imports: [
     UsersModule,
@@ -13,6 +14,7 @@ import { RefreshTokenModule } from 'src/refresh-token/refresh-token.module';
     HashPasswordModule,
     EmailModule,
     RefreshTokenModule,
+    LoggerModule
   ],
   controllers: [AuthController],
   providers: [AuthService],

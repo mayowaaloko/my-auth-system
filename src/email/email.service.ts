@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Resend } from 'resend';
 import { Logger } from 'winston';
 
 @Injectable()
 export class EmailService {
+  private readonly resend: Resend;
   constructor(
-    private readonly resend: Resend,
     private readonly configService: ConfigService,
-    private readonly logger: Logger,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     if (!apiKey) {

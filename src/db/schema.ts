@@ -24,7 +24,7 @@ export const users = pgTable('user', {
   twoFactorAuthSecret: text('two_factor_auth_secret'),
 
   isEmailVerified: boolean('is_verified').notNull().default(false),
-  
+
   emailVerificationToken: text('email_verification_token').unique(),
   emailVerificationTokenExpiresAt: timestamp(
     'email_verification_token_expires_at',
@@ -48,13 +48,13 @@ export const refreshTokens = pgTable('refresh_token', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  
+
   tokenHash: text('token_hash').notNull().unique(),
 
   family: text('family').notNull(),
 
   jti: text('jti').notNull().unique(),
-  
+  used: boolean('used').notNull().default(false),
   expiresAt: timestamp('expires_at').notNull(),
 
   revokedAt: timestamp('revoked_at'),

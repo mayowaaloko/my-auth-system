@@ -7,6 +7,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { IsNotPwned } from 'src/common/validators/is-not-pwned.validator';
 export class RegisterDto {
   @ApiProperty({ example: 'danielshola@gmail.com' })
   @IsString()
@@ -31,6 +32,7 @@ export class RegisterDto {
   @ApiProperty({})
   @IsString()
   @IsNotEmpty()
+  @IsNotPwned()
   @IsStrongPassword(
     {
       minLength: 8,
