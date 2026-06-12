@@ -61,7 +61,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   console.log(`Application is running on: ${await app.getUrl()}/api/v1`);
-  console.log(`Swagger is running on: ${await app.getUrl()}/api/v1/docs`);
+  console.log(`Swagger is running on : ${await app.getUrl()}/api/v1/docs`);
 }
 bootstrap().catch((error) => {
   console.error('❌ Application falied to start:', error);
