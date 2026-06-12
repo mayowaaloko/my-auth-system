@@ -52,9 +52,10 @@ async function bootstrap() {
     .addCookieAuth('refreshToken')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  if (configService.get<string>('NODE_ENV') !== 'production') {
-    SwaggerModule.setup('api/docs', app, document);
-  }
+  SwaggerModule.setup('api/docs', app, document);
+  // if (configService.get<string>('NODE_ENV') !== 'production') {
+  //   SwaggerModule.setup('api/docs', app, document);
+  // }
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port, '0.0.0.0');
