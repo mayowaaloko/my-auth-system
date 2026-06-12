@@ -25,6 +25,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { updatePasswordDto } from './dto/update-password.dto';
+import { GoogleService } from 'src/google/google.service';
+import { auth } from 'google-auth-library';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +34,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
+    private readonly googleService:GoogleService
   ) {}
 
   // POST /api/v1/auth/register
@@ -209,7 +212,7 @@ export class AuthController {
     const { refreshToken, ...response } = result;
     return response;
   }
-
+// POST /api/v1/auth/logout-all
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout-all')
@@ -226,5 +229,25 @@ export class AuthController {
       sameSite: 'lax',
     });
     return { message: 'All sessions logged out successfully' };
+  }
+// GET /api/v1/auth/google
+  @Public()
+  @Get('google')
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  async googleAuth(@Res() res: Response) {
+    const url = this.googleService.getAuthUrl();
+    res.redirect(url);
+  }
+  @Public()
+  @Get('google/callback')
+  @ApiOperation({ summary: 'Handle Google OAuth callback' })
+  async googleAuthCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
+    if (!code) {
+      throw new UnauthorizedException('Google OAuth failed - No code provided');
+    }
+    const googleUser = await this.googleService.getUserFromCode(code);
+    const result = await this.authService.googleAuth()
+    res
+
   }
 }

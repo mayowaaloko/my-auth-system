@@ -401,7 +401,6 @@ export class AuthService {
     });
     this.logger.info(`Password reset for user ${user.email}`);
 
-
     // Auto-login after reset
     const tokens = await this.generateTokens({
       id: user.id,
@@ -441,7 +440,7 @@ export class AuthService {
       updatedAt: new Date(),
       passwordChangedAt: new Date(),
     });
-this.logger.info(`Password updated for user ${user.email}`);
+    this.logger.info(`Password updated for user ${user.email}`);
     await this.refreshTokenService.revokeAllForUser(user.id);
 
     const tokens = await this.generateTokens({
@@ -459,7 +458,63 @@ this.logger.info(`Password updated for user ${user.email}`);
     return { message: 'All sessions logged out successfully' };
   }
 
-async googleAuth(){}
+  async googleAuth(googleUser: {
+    googleId: string;
+    email: string;
+    name: string;
+    emailVerified: boolean;
+    refreshToken: string;
+    accessToken: string;
+  }) {
+    const normalizedEmail = googleUser.email.toLowerCase();
+    let user = await this.usersService.findByEmail(normalizedEmail);
+    const [firstName, lastName] = googleUser.name.split(' ');
+    const hashPassword = await this.hashPasswordService.hashPassword(
+      crypto.randomBytes(32).toString('hex'),
+    );
+    if (!user) {
+      //create a new user
+      user = await this.usersService.create({
+        email: normalizedEmail,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        password: hashPassword,
+        isEmailVerified: true,
+        googleId: googleUser.googleId,
+      });
+      this.logger.info(`User with email ${normalizedEmail} has been created`);
+    } else {
+      //update existing user if needed
+      const updates: any = {};
+      if (!user.googleId) updates.googleId = googleUser.googleId;
+      if (!user.isEmailVerified) {
+        updates.isEmailVerified = true;
+      }
+      if (Object.keys(updates).length > 0) {
+        await this.usersService.update(user.id, {
+          ...updates,
+          updatedAt: new Date(),
+        });
+      }
+    }
+    const tokens = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+    return {
+      message: ' Google authentication successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isEmailVerified: user.isEmailVerified,
+        role: user.role,
+      },
+      ...tokens,
+    };
+  }
 
   // ====================== Private Methods ======================
 
