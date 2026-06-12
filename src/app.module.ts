@@ -15,9 +15,18 @@ import { JwtService } from '@nestjs/jwt';
 import { GoogleModule } from './google/google.module';
 import { TwoFactorAuthService } from './two-factor-auth/two-factor-auth.service';
 import { TwoFactorAuthModule } from './two-factor-auth/two-factor-auth.module';
-
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'default',
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       expandVariables: true,
@@ -32,6 +41,12 @@ import { TwoFactorAuthModule } from './two-factor-auth/two-factor-auth.module';
     TwoFactorAuthModule,
   ],
   controllers: [AppController, UsersController],
-  providers: [AppService, JwtService ,{ provide: APP_GUARD, useClass: JwtAuthGuard }, TwoFactorAuthService],
+  providers: [
+    AppService,
+    JwtService,
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    TwoFactorAuthService,
+  ],
 })
 export class AppModule {}

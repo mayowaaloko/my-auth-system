@@ -27,6 +27,9 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { updatePasswordDto } from './dto/update-password.dto';
 import { GoogleService } from 'src/google/google.service';
 import { TwoFactorAuthService } from 'src/two-factor-auth/two-factor-auth.service';
+import { Throttle } from '@nestjs/throttler';
+import { LoginThrottlerGuard } from './guards/login-throttler.guard';
+import { ForgotPasswordThrottlerGuard } from './guards/forgot-password-throttler.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -39,6 +42,7 @@ export class AuthController {
   ) {}
 
   // POST /api/v1/auth/register
+
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -84,6 +88,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(LoginThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Login a user' })
   async login(
     @Body() loginData: LoginDto,
@@ -160,6 +166,8 @@ export class AuthController {
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ForgotPasswordThrottlerGuard)
+  @Throttle({ default: { ttl: 60000, limit: 4 } })
   @ApiOperation({ summary: 'Request a password reset email' })
   async forgotPassword(@Body() forgotPasswordData: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordData.email);
