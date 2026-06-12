@@ -23,5 +23,5 @@ COPY package*.json ./
 
 ENV PORT=5000
 EXPOSE 5000
-
+RUN ls -la dist/ && ls -la dist/users/ || echo "NO USERS DIR"
 CMD ["node", "dist/main.js"]
