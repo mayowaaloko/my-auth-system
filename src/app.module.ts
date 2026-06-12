@@ -16,6 +16,7 @@ import { GoogleModule } from './google/google.module';
 import { TwoFactorAuthService } from './two-factor-auth/two-factor-auth.service';
 import { TwoFactorAuthModule } from './two-factor-auth/two-factor-auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { HealthModule } from './health/health.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot({
@@ -39,6 +40,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     RefreshTokenModule,
     GoogleModule,
     TwoFactorAuthModule,
+    HealthModule,
   ],
   controllers: [AppController, UsersController],
   providers: [
