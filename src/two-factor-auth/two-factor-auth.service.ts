@@ -10,8 +10,8 @@ import * as crypto from 'crypto';
 import * as QRCode from 'qrcode';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { generateSecret, generate, verify, generateURI } from 'otplib';
-import { HashPasswordService } from 'src/hash-password/hash-password.service';
-import { UsersService } from 'src/users/users.service';
+import { HashPasswordService } from '../hash-password/hash-password.service';
+import { UsersService } from '../users/users.service';
 import { Logger } from 'winston';
 
 @Injectable()

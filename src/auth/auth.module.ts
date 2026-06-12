@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { UsersModule } from 'src/users/users.module';
+import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
-import { HashPasswordModule } from 'src/hash-password/hash-password.module';
-import { EmailModule } from 'src/email/email.module';
-import { RefreshTokenModule } from 'src/refresh-token/refresh-token.module';
-import { LoggerModule } from 'src/logger/logger.module';
+import { HashPasswordModule } from '../hash-password/hash-password.module';
+import { EmailModule } from '../email/email.module';
+import { RefreshTokenModule } from '../refresh-token/refresh-token.module';
+import { LoggerModule } from '../logger/logger.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { GoogleService } from 'src/google/google.service';
-import { TwoFactorAuthModule } from 'src/two-factor-auth/two-factor-auth.module';
+import { GoogleService } from '../google/google.service';
+import { TwoFactorAuthModule } from '../two-factor-auth/two-factor-auth.module';
 @Module({
   imports: [
     UsersModule,

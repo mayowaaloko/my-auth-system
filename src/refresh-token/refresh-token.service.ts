@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { db } from 'src/db/db';
-import { NewRefreshToken, refreshTokens } from 'src/db/schema';
+import { db } from '../db/db';
+import { NewRefreshToken, refreshTokens } from '../db/schema';
 import { and, eq, desc, isNull } from 'drizzle-orm';
 
 @Injectable()

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsStrongPassword } from 'class-validator';
-import { Match } from 'src/common/decorators/match.decorator';
-import { IsNotPwned } from 'src/common/validators/is-not-pwned.validator';
+import { Match } from '../../common/decorators/match.decorator';
+import { IsNotPwned } from '../../common/validators/is-not-pwned.validator';
 
 export class updatePasswordDto {
   @ApiProperty({ example: 'Password@123', minLength: 8 })

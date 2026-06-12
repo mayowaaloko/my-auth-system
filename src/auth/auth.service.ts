@@ -8,17 +8,17 @@ import {
 import { ConfigService } from '@nestjs/config';
 import QRCode from 'qrcode';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { UsersService } from 'src/users/users.service';
+import { UsersService } from '../users/users.service';
 import { Logger } from 'winston';
 import { RegisterDto } from './dto/register.dto';
 import { JwtService } from '@nestjs/jwt';
-import { HashPasswordService } from 'src/hash-password/hash-password.service';
+import { HashPasswordService } from '../hash-password/hash-password.service';
 import * as crypto from 'crypto';
-import { EmailService } from 'src/email/email.service';
-import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
+import { EmailService } from '../email/email.service';
+import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { LoginDto } from './dto/login.dto';
 import { generateSecret, generate, verify, generateURI } from 'otplib';
-import { TwoFactorAuthService } from 'src/two-factor-auth/two-factor-auth.service';
+import { TwoFactorAuthService } from '../two-factor-auth/two-factor-auth.service';
 type JwtPayloadUser = {
   id: string;
   email: string;

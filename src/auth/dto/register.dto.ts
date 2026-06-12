@@ -7,8 +7,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Match } from 'src/common/decorators/match.decorator';
-import { IsNotPwned } from 'src/common/validators/is-not-pwned.validator';
+import { Match } from '../../common/decorators/match.decorator';
+import { IsNotPwned } from '../../common/validators/is-not-pwned.validator';
 export class RegisterDto {
   @ApiProperty({ example: 'danielshola@gmail.com' })
   @IsString()
