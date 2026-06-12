@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
-import { GlobalExceptionFilter } from './common/filter/global-exception';
+import { GlobalExceptionFilter } from './common/filter/global.exception';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
