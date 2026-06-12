@@ -19,12 +19,22 @@ export class EmailService {
     this.resend = new Resend(apiKey);
   }
 
-  async sendVerificationEmail(email: string, token: string): Promise<void> {
+  private getAppUrl(): string {
     const appUrl = this.configService.get<string>('APP_URL');
+    if (!appUrl) {
+      this.logger.error('APP_URL is not defined');
+      throw new Error('APP_URL is not defined');
+    }
+
+    return appUrl.replace(/\/$/, '');
+  }
+
+  async sendVerificationEmail(email: string, token: string): Promise<void> {
+    const appUrl = this.getAppUrl();
     const fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
       'onboarding@resend.dev';
-    const verificationUrl = `${appUrl}/v1/auth/verify-email?token=${token}`;
+    const verificationUrl = `${appUrl}/auth/verify-email?token=${token}`;
 
     try {
       await this.resend.emails.send({
@@ -65,11 +75,11 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const appUrl = this.configService.get<string>('APP_URL');
+    const appUrl = this.getAppUrl();
     const fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
       'onboarding@resend.dev';
-    const resetUrl = `${appUrl}/v1/auth/reset-password?token=${token}`;
+    const resetUrl = `${appUrl}/auth/reset-password?token=${token}`;
 
     try {
       await this.resend.emails.send({
