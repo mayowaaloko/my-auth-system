@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import QRCode from 'qrcode';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { UsersService } from 'src/users/users.service';
 import { Logger } from 'winston';
@@ -17,6 +18,7 @@ import { EmailService } from 'src/email/email.service';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 import { LoginDto } from './dto/login.dto';
 import { generateSecret, generate, verify, generateURI } from 'otplib';
+import { TwoFactorAuthService } from 'src/two-factor-auth/two-factor-auth.service';
 type JwtPayloadUser = {
   id: string;
   email: string;
@@ -32,6 +34,7 @@ export class AuthService {
     private readonly hashPasswordService: HashPasswordService,
     private readonly emailService: EmailService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly twoFactorAuthService: TwoFactorAuthService,
   ) {}
   // ================= REGISTER =================
   async register(dto: RegisterDto) {
@@ -213,24 +216,38 @@ export class AuthService {
       );
     }
 
-    // //2FA check
-    // if (user.twoFactorAuth) {
-    //   if (!user.twoFactorAuthSecret || !dto.twoFactorAuthCode) {
-    //     throw new BadRequestException(
-    //       'Two-factor authentication is enabled but not configured. Please contact support.',
-    //     );
-    //   }
-    //   const result = await verify({
-    //     secret: user.twoFactorAuthSecret,
-    //     token: dto.twoFactorAuthCode,
-    //   });
-    //   if (!result.valid) {
-    //     this.logger.error(
-    //       `Invalid two-factor authentication code for user ${dto.email}`,
-    //     );
-    //     throw new BadRequestException('Invalid two-factor authentication code');
-    //   }
-    // }
+    //2FA check
+    if (user.twoFactorAuth) {
+      if (!user.twoFactorAuthSecret) {
+        throw new BadRequestException(
+          'Two-factor authentication is enabled but not configured. Please contact support.',
+        );
+      }
+      if (!dto.twoFactorAuthCode) {
+        return {
+          message: 'Two-factor authentication required',
+          TwoFactorAuthRequired: true,
+        };
+      }
+      //Try TOTP code first
+      let isValid = await this.twoFactorAuthService.verifyLoginCode(
+        user.id,
+        dto.twoFactorAuthCode,
+      );
+      // if totp fails, try backup code
+      if (!isValid) {
+        isValid = await this.twoFactorAuthService.verifyBackupCode(
+          user.id,
+          dto.twoFactorAuthCode,
+        );
+      }
+      if (!isValid) {
+        this.logger.error(
+          `Invalid two-factor authentication code for user ${dto.email}`,
+        );
+        throw new BadRequestException('Invalid two-factor authentication code');
+      }
+    }
 
     //reset failed attempts on successful login
     user.failedLoginAttempts = 0;
@@ -241,7 +258,11 @@ export class AuthService {
       lockUntil: user.lockUntil,
       updatedAt: new Date(),
     });
-    const tokens = await this.generateTokens(user);
+    const tokens = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
     this.logger.info(`User with email ${dto.email} has logged in`);
     return {
       message: 'Login successful',

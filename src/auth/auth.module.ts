@@ -10,6 +10,7 @@ import { LoggerModule } from 'src/logger/logger.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleService } from 'src/google/google.service';
+import { TwoFactorAuthModule } from 'src/two-factor-auth/two-factor-auth.module';
 @Module({
   imports: [
     UsersModule,
@@ -26,9 +27,9 @@ import { GoogleService } from 'src/google/google.service';
     EmailModule,
     RefreshTokenModule,
     LoggerModule,
-    GoogleService
+    TwoFactorAuthModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard],
+  providers: [AuthService, JwtAuthGuard, GoogleService],
 })
 export class AuthModule {}

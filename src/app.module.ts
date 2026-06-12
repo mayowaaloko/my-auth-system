@@ -13,6 +13,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { GoogleModule } from './google/google.module';
+import { TwoFactorAuthService } from './two-factor-auth/two-factor-auth.service';
+import { TwoFactorAuthModule } from './two-factor-auth/two-factor-auth.module';
 
 @Module({
   imports: [
@@ -27,8 +29,9 @@ import { GoogleModule } from './google/google.module';
     EmailModule,
     RefreshTokenModule,
     GoogleModule,
+    TwoFactorAuthModule,
   ],
   controllers: [AppController, UsersController],
-  providers: [AppService, JwtService ,{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [AppService, JwtService ,{ provide: APP_GUARD, useClass: JwtAuthGuard }, TwoFactorAuthService],
 })
 export class AppModule {}

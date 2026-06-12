@@ -22,7 +22,7 @@ export const users = pgTable('user', {
 
   twoFactorAuth: boolean('two_factor_auth').notNull().default(false),
   twoFactorAuthSecret: text('two_factor_auth_secret'),
-
+  twoFactorAuthBackupCodes: text('two_factor_auth_backup_codes').array(),
   isEmailVerified: boolean('is_verified').notNull().default(false),
 
   emailVerificationToken: text('email_verification_token').unique(),

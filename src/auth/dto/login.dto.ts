@@ -30,7 +30,7 @@ export class LoginDto {
   )
   password: string;
 
-  // @ApiProperty({ example: '123456', required: false })
-  // @IsString()
-  // twoFactorAuthCode?: string;
+  @ApiProperty({ example: '123456', required: false })
+  @IsString()
+  twoFactorAuthCode?: string;
 }

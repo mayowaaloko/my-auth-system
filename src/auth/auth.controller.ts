@@ -26,7 +26,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { updatePasswordDto } from './dto/update-password.dto';
 import { GoogleService } from 'src/google/google.service';
-import { auth } from 'google-auth-library';
+import { TwoFactorAuthService } from 'src/two-factor-auth/two-factor-auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -34,7 +34,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
-    private readonly googleService:GoogleService
+    private readonly googleService: GoogleService,
+    private readonly twoFactorAuthService: TwoFactorAuthService,
   ) {}
 
   // POST /api/v1/auth/register
@@ -89,14 +90,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(loginData);
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    const { refreshToken, ...response } = result;
-    return { ...response };
+    if ('refreshToken' in result) {
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: this.configService.get('NODE_ENV') === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      const { refreshToken, ...response } = result;
+      return response;
+    }
+    return result;
   }
 
   //POST /api/v1/auth/refresh
@@ -212,7 +216,7 @@ export class AuthController {
     const { refreshToken, ...response } = result;
     return response;
   }
-// POST /api/v1/auth/logout-all
+  // POST /api/v1/auth/logout-all
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout-all')
@@ -230,7 +234,7 @@ export class AuthController {
     });
     return { message: 'All sessions logged out successfully' };
   }
-// GET /api/v1/auth/google
+  // GET /api/v1/auth/google
   @Public()
   @Get('google')
   @ApiOperation({ summary: 'Initiate Google OAuth login' })
@@ -241,13 +245,58 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @ApiOperation({ summary: 'Handle Google OAuth callback' })
-  async googleAuthCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
+  async googleAuthCallback(
+    @Query('code') code: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     if (!code) {
       throw new UnauthorizedException('Google OAuth failed - No code provided');
     }
     const googleUser = await this.googleService.getUserFromCode(code);
-    const result = await this.authService.googleAuth()
-    res
+    const result = await this.authService.googleAuth(googleUser);
+    res.cookie('refreshTokem', result.refreshToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    const { refreshToken, ...response } = result;
+    return response;
+  }
 
+  // POST /api/v1/auth/2fa/setup
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('2fa/setup')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Enable two-factor authentication for a user' })
+  async setupTwoFactorAuth(@CurrentUser() user: User) {
+    return this.twoFactorAuthService.setup(user.id);
+  }
+
+  //POST /api/v1/auth/2fa/verify
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('2fa/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify and enable two-factor authentication code' })
+  async verifyTwoFactorAuth(
+    @CurrentUser() user: User,
+    @Body('code') code: string,
+  ) {
+    return this.twoFactorAuthService.verifyAndEnable(user.id, code);
+  }
+
+  //POST /api/v1/auth/2fa/disable
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('2fa/disable')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Disable two-factor authentication for a user' })
+  async disableTwoFactorAuth(
+    @CurrentUser() user: User,
+    @Body('password') password: string,
+  ) {
+    return this.twoFactorAuthService.disable(user.id, password);
   }
 }
