@@ -53,7 +53,7 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @IsNotPwned()
-  @Match('newPassword', { message: 'Passwords do not match' })
+  @Match('password', { message: 'Passwords do not match' })
   @IsStrongPassword(
     {
       minLength: 8,
