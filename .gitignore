@@ -1,3 +1,7 @@
+# Exceptions must come BEFORE general rules
+!Dockerfile
+!.dockerignore
+
 # compiled output
 /dist
 /node_modules
@@ -11,7 +15,6 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-dist/
 tsconfig.build.tsbuildinfo
 # OS
 .DS_Store
