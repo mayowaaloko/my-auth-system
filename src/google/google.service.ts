@@ -6,12 +6,27 @@ import { OAuth2Client } from 'google-auth-library';
 export class GoogleService {
   private readonly scopes = ['openid', 'email', 'profile'];
   constructor(private configService: ConfigService) {}
+
+  private getRedirectUri(): string {
+    const appUrl = this.configService.get<string>('APP_URL');
+    if (appUrl) {
+      return `${appUrl.replace(/\/$/, '')}/auth/google/callback`;
+    }
+
+    const redirectUri = this.configService.get<string>('GOOGLE_REDIRECT_URI');
+    if (!redirectUri) {
+      throw new Error('Missing Google OAuth redirect URI');
+    }
+
+    return redirectUri;
+  }
+
   private getClient(): OAuth2Client {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const redirectUri = this.configService.get<string>('GOOGLE_REDIRECT_URI');
+    const redirectUri = this.getRedirectUri();
     if (!clientId || !clientSecret || !redirectUri) {
-      throw new Error('Missing Google OAuth environment variables') ;
+      throw new Error('Missing Google OAuth environment variables');
     }
     return new OAuth2Client(clientId, clientSecret, redirectUri);
   }

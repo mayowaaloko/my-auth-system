@@ -204,6 +204,13 @@ APP_URL=https://my-auth-system-production.up.railway.app/api/v1
 ```
 
 This value is used when generating email verification and password reset links.
+It is also used to build the Google OAuth callback URL:
+
+```txt
+https://my-auth-system-production.up.railway.app/api/v1/auth/google/callback
+```
+
+Add that exact callback URL to your Google Cloud OAuth client's authorized redirect URIs.
 
 Push the database schema:
 

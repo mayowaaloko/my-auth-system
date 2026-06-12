@@ -262,7 +262,7 @@ export class AuthController {
     }
     const googleUser = await this.googleService.getUserFromCode(code);
     const result = await this.authService.googleAuth(googleUser);
-    res.cookie('refreshTokem', result.refreshToken, {
+    res.cookie('refreshToken', result.refreshToken, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
       sameSite: 'lax',
