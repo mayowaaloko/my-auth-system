@@ -26,6 +26,11 @@ import { HealthModule } from './health/health.module';
           ttl: 60000,
           limit: 10,
         },
+        {
+          name: 'auth',
+          ttl: 60000,
+          limit: 5, 
+        },
       ],
     }),
     ConfigModule.forRoot({
@@ -46,8 +51,8 @@ import { HealthModule } from './health/health.module';
   providers: [
     AppService,
     JwtService,
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     TwoFactorAuthService,
   ],
 })

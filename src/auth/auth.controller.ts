@@ -44,6 +44,7 @@ export class AuthController {
   // POST /api/v1/auth/register
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user' })
@@ -86,10 +87,11 @@ export class AuthController {
 
   // POST /api/v1/auth/login
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UseGuards(LoginThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  
   @ApiOperation({ summary: 'Login a user' })
   async login(
     @Body() loginData: LoginDto,
@@ -164,10 +166,9 @@ export class AuthController {
 
   // POST /api/v1/auth/forgot-password
   @Public()
+  @UseGuards(ForgotPasswordThrottlerGuard)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ForgotPasswordThrottlerGuard)
-  @Throttle({ default: { ttl: 60000, limit: 4 } })
   @ApiOperation({ summary: 'Request a password reset email' })
   async forgotPassword(@Body() forgotPasswordData: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordData.email);

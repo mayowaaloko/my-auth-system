@@ -14,6 +14,7 @@ import {
 
 import { Public } from '../common/decorators/public.decorator';
 import { HealthService } from './health.service';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('health')
 @ApiTags('Health')
@@ -21,6 +22,7 @@ export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
   @Public()
+  @SkipThrottle()
   @Get('live')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -47,6 +49,7 @@ export class HealthController {
   }
 
   @Public()
+  @SkipThrottle()
   @Get('ready')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
