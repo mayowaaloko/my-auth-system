@@ -7,6 +7,7 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filter/global.exception';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { json } from 'express';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
@@ -19,7 +20,7 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-    maxAge: 86400, // Cache preflight for 24h
+    maxAge: 86400,
   });
 
   // HELMET:
@@ -40,7 +41,7 @@ async function bootstrap() {
               upgradeInsecureRequests: [],
             },
           }
-        : false, // Disable CSP in dev for Swagger convenience
+        : false,
       hsts: isProd
         ? { maxAge: 31536000, includeSubDomains: true, preload: true }
         : false,
@@ -50,6 +51,7 @@ async function bootstrap() {
       frameguard: { action: 'deny' },
     }),
   );
+
   // COOKIE PARSER:
   app.use(
     cookieParser(
@@ -64,7 +66,7 @@ async function bootstrap() {
   });
 
   app.use(json({ limit: '10kb' }));
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -77,17 +79,14 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   const config = new DocumentBuilder()
-    .setTitle('Production Grade uth System')
+    .setTitle('Production Grade Auth System')
     .setDescription('A production grade authentication system project')
     .setVersion('1.0')
     .addBearerAuth()
     .addCookieAuth('refreshToken')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  // SwaggerModule.setup('api/docs', app, document);
-  if (!isProd) {
-    SwaggerModule.setup('api/docs', app, document);
-  }
+  SwaggerModule.setup('api/docs', app, document);
 
   // GRACEFUL SHUTDOWN
   app.enableShutdownHooks();
@@ -96,9 +95,10 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   console.log(`Application is running on: ${await app.getUrl()}/api/v1`);
-  console.log(`Swagger is running on : ${await app.getUrl()}/api/v1/docs`);
+  console.log(`Swagger is running on: ${await app.getUrl()}/api/docs`);
 }
+
 bootstrap().catch((error) => {
-  console.error('❌ Application falied to start:', error);
+  console.error('❌ Application failed to start:', error);
   process.exit(1);
 });
